@@ -44,9 +44,9 @@ void naiveGemmStridedBatched(
 				for (int l = 0; l < k; l++) {
 					T a_elem = transa == CUBLAS_OP_N ? Aarray[batch * stride_a + i * lda + l] : Aarray[batch * stride_a + l * lda + i];
 					T b_elem = transb == CUBLAS_OP_N ? Barray[batch * stride_b + l * ldb + j] : Barray[batch * stride_b + j * ldb + l];
-					sum = sum + (float)a_elem*(float)b_elem;
+					sum = sum + toFloat(a_elem) * toFloat(b_elem);
 				}
-				Carray[batch * stride_c + i * ldc + j] = alpha * sum + beta * Carray[batch * stride_c + i * ldc + j];
+				Carray[batch * stride_c + i * ldc + j] = fromFloat<T>(toFloat(alpha) * sum + toFloat(beta) * toFloat(Carray[batch * stride_c + i * ldc + j]));
 			}
 		}
 	}
@@ -97,16 +97,16 @@ TYPED_TEST(CublasWrapperTestSuite, gemmStridedBatched) {
 			std::mt19937 gen(0);
 			std::uniform_real_distribution<float> dist(-2, 2);
 			for (int i = 0; i < STRIDE_A * BATCH_COUNT; i++) {
-				Aarray[i] = dist(gen);
+				Aarray[i] = fromFloat<T>(dist(gen));
 			}
 			for (int i = 0; i < STRIDE_B * BATCH_COUNT; i++) {
-				Barray[i] = dist(gen);
+				Barray[i] = fromFloat<T>(dist(gen));
 			}
 			for (int i = 0; i < STRIDE_C * BATCH_COUNT; i++) {
-				ref_Carray[i] = dist(gen);
+				ref_Carray[i] = fromFloat<T>(dist(gen));
 			}
-			T alpha = dist(gen);
-			T beta = dist(gen);
+			T alpha = fromFloat<T>(dist(gen));
+			T beta = fromFloat<T>(dist(gen));
 
 			// Copy A, B and C to GPU
 			CUDA_CHECK(cudaMemcpy(Aarray_gpu, Aarray, STRIDE_A * BATCH_COUNT * sizeof(T), cudaMemcpyHostToDevice));

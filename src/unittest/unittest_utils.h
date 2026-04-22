@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <random>
 
 #include <cuda_runtime.h>
@@ -24,6 +25,26 @@ inline T randNumber(std::mt19937 &rng, T min, T max) {
 	return dist(rng);
 }
 
+template<typename T>
+inline float toFloat(T value) {
+	return static_cast<float>(value);
+}
+
+template<>
+inline float toFloat<__half>(__half value) {
+	return __half2float(value);
+}
+
+template<typename T>
+inline T fromFloat(float value) {
+	return static_cast<T>(value);
+}
+
+template<>
+inline __half fromFloat<__half>(float value) {
+	return __float2half(value);
+}
+
 // isAlmostEqual - Check if two floats are equal under given precision
 // It accomplishes this by checking whether fabs(answer-reference) <= ans_tol + rel_tol*fabs(reference)
 // When both answer & reference are NaN, return true
@@ -34,7 +55,7 @@ inline bool isFloatAlmostEqual(float answer, float reference, const float abs_to
 	if (std::isnan(answer) || std::isnan(reference)) {
 		return false;
 	}
-	return fabs(answer-reference) <= abs_tol + rel_tol*fabs(reference);
+	return std::fabs(answer-reference) <= abs_tol + rel_tol*std::fabs(reference);
 }
 
 
@@ -80,7 +101,7 @@ inline bool isArrayAlmostEqual(
 	int64_t error_count = 0;
 	int64_t first_error_pos = -1;
 	for (int64_t i = 0; i < n; ++i) {
-		bool ok = isFloatAlmostEqual(answer[i], reference[i], abs_tol, rel_tol);
+		bool ok = isFloatAlmostEqual(toFloat(answer[i]), toFloat(reference[i]), abs_tol, rel_tol);
 		if (!ok) {
 			if (record_pos){
 				error_pos.push_back(i);
@@ -89,8 +110,8 @@ inline bool isArrayAlmostEqual(
 			if (error_count == 1) first_error_pos = i;
 			if (error_count > max_non_match && error_count < max_non_match+4) {
 				printf("Invalid result: answer[%ld] = %f, reference[%ld] = %f, abs_err = %f, rel_err = %f\n",
-					i, (float)answer[i], i, (float)reference[i],
-					fabs(answer[i]-reference[i]), fabs(answer[i]-reference[i])/fabs(reference[i]));
+					i, toFloat(answer[i]), i, toFloat(reference[i]),
+					std::fabs(toFloat(answer[i])-toFloat(reference[i])), std::fabs(toFloat(answer[i])-toFloat(reference[i]))/std::fabs(toFloat(reference[i])));
 			}
 		}
 	}
