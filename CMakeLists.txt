@@ -59,8 +59,8 @@ if (DEFINED ENV{CONDA_PREFIX})
   st_strip_conda_flags(CMAKE_CUDA_FLAGS)
 endif()
 
-# Prefer module/system toolkit roots first to keep runtime and linker resolution
-# aligned with system libraries. Fall back to Conda only if needed.
+# Prefer module/system toolkit roots to keep runtime and linker resolution
+# aligned with system libraries.
 if (NOT DEFINED CUDAToolkit_ROOT)
   if (DEFINED ENV{CRAY_CUDATOOLKIT_DIR})
     set(CUDAToolkit_ROOT $ENV{CRAY_CUDATOOLKIT_DIR})
