@@ -166,6 +166,10 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH ${TORCH_DIR})
 set(CAFFE2_USE_CUDNN 1)
 
+# Optional compatibility bridge for Torch/Caffe2 builds that still require
+# legacy nvToolsExt even when the selected CUDA toolkit does not ship it.
+set(ST_NVTOOLSEXT_PATH "" CACHE FILEPATH "Absolute path to libnvToolsExt.so compatibility library")
+
 # Torch's Caffe2 config still uses legacy FindCUDA variables.
 if (NOT DEFINED CUDA_TOOLKIT_ROOT_DIR AND DEFINED CUDAToolkit_ROOT)
   set(CUDA_TOOLKIT_ROOT_DIR ${CUDAToolkit_ROOT})
@@ -182,9 +186,17 @@ if (NOT DEFINED LIBNVTOOLSEXT)
     set(LIBNVTOOLSEXT "${CUDAToolkit_ROOT}/lib64/libnvToolsExt.so")
   elseif (DEFINED CUDAToolkit_ROOT AND EXISTS "${CUDAToolkit_ROOT}/lib/libnvToolsExt.so")
     set(LIBNVTOOLSEXT "${CUDAToolkit_ROOT}/lib/libnvToolsExt.so")
+  elseif (ST_NVTOOLSEXT_PATH AND EXISTS "${ST_NVTOOLSEXT_PATH}")
+    set(LIBNVTOOLSEXT "${ST_NVTOOLSEXT_PATH}")
+  elseif (DEFINED ENV{ST_NVTOOLSEXT_PATH} AND EXISTS "$ENV{ST_NVTOOLSEXT_PATH}")
+    set(LIBNVTOOLSEXT "$ENV{ST_NVTOOLSEXT_PATH}")
+  elseif (DEFINED ENV{CONDA_PREFIX} AND EXISTS "$ENV{CONDA_PREFIX}/lib/libnvToolsExt.so")
+    # Single-file compatibility bridge: avoid adding -L$CONDA_PREFIX/lib.
+    set(LIBNVTOOLSEXT "$ENV{CONDA_PREFIX}/lib/libnvToolsExt.so")
   endif()
 endif()
 if (DEFINED LIBNVTOOLSEXT)
+  message(STATUS "Using nvToolsExt compatibility library: ${LIBNVTOOLSEXT}")
   set(CUDA_nvToolsExt_LIBRARY ${LIBNVTOOLSEXT})
   set(CUDA_NVTOOLSEXT_LIBRARY ${LIBNVTOOLSEXT})
 endif()
