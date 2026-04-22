@@ -47,11 +47,16 @@ if (DEFINED ENV{CONDA_PREFIX})
 
   list(APPEND CMAKE_SYSTEM_IGNORE_PATH "$ENV{CONDA_PREFIX}/lib" "$ENV{CONDA_PREFIX}/lib/stubs")
   list(APPEND CMAKE_IGNORE_PATH "$ENV{CONDA_PREFIX}/lib" "$ENV{CONDA_PREFIX}/lib/stubs")
+endif()
 
-  # Keep CUDA toolkit discovery working when nvcc comes from the Conda env,
-  # but do not add Conda's lib directories to the linker search path.
-  if (NOT DEFINED CUDAToolkit_ROOT)
-    set(CUDAToolkit_ROOT $ENV{CONDA_PREFIX})
+# Prefer toolkit roots from system modules (HPC) over Conda discovery.
+if (NOT DEFINED CUDAToolkit_ROOT)
+  if (DEFINED ENV{CRAY_CUDATOOLKIT_DIR})
+    set(CUDAToolkit_ROOT $ENV{CRAY_CUDATOOLKIT_DIR})
+  elseif (DEFINED ENV{CUDATOOLKIT_HOME})
+    set(CUDAToolkit_ROOT $ENV{CUDATOOLKIT_HOME})
+  elseif (DEFINED ENV{CUDA_HOME})
+    set(CUDAToolkit_ROOT $ENV{CUDA_HOME})
   endif()
 endif()
 
