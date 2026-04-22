@@ -12,6 +12,7 @@ add_library(py_nccl_utils STATIC py_nccl.cc)
 set_property(TARGET py_nccl_utils PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET py_nccl_utils PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS  ON)
 target_link_libraries(py_nccl_utils PUBLIC ${MPI_CXX_LIBRARIES} ${NCCL_LIBRARIES})
+target_include_directories(py_nccl_utils PUBLIC ${MPI_CXX_INCLUDE_DIRS} ${NCCL_INCLUDE_DIRS})
 
 add_library(py_swapping STATIC py_swapping.cc)
 target_link_libraries(py_swapping PUBLIC util)
