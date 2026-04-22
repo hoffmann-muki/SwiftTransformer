@@ -89,6 +89,9 @@ set(CAFFE2_USE_CUDNN 1)
 find_package(Torch REQUIRED)
 list(APPEND COMMON_HEADER_DIRS "${TORCH_INCLUDE_DIRS}")
 
+# Torch shared libraries need to stay together and must not be dropped by as-needed.
+set(TORCH_LINK_LIBRARIES -Wl,--no-as-needed ${TORCH_LIBRARIES} -Wl,--as-needed)
+
 
 # Let COMMON_HEADER_DIRS take effect and make CUDA visible globally.
 include_directories(${COMMON_HEADER_DIRS})

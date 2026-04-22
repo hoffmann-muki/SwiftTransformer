@@ -14,9 +14,9 @@ set_property(TARGET py_nccl_utils PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS  ON)
 target_link_libraries(py_nccl_utils PUBLIC ${MPI_CXX_LIBRARIES} ${NCCL_LIBRARIES})
 
 add_library(py_swapping STATIC py_swapping.cc)
-target_link_libraries(py_swapping PUBLIC util ${TORCH_LIBRARIES})
+target_link_libraries(py_swapping PUBLIC util)
 set_property(TARGET py_swapping PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(py_block_migration STATIC py_block_migration.cc)
-target_link_libraries(py_block_migration PUBLIC util ${TORCH_LIBRARIES})
+target_link_libraries(py_block_migration PUBLIC util)
 set_property(TARGET py_block_migration PROPERTY POSITION_INDEPENDENT_CODE ON)
