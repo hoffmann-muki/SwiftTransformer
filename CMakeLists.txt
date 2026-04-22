@@ -92,6 +92,38 @@ list(APPEND COMMON_HEADER_DIRS "${TORCH_INCLUDE_DIRS}")
 # Torch shared libraries need to stay together and must not be dropped by as-needed.
 set(TORCH_LINK_LIBRARIES -Wl,--no-as-needed ${TORCH_LIBRARIES} -Wl,--as-needed)
 
+# Conda's Torch often injects -L$CONDA_PREFIX/lib and -L$CONDA_PREFIX/lib/stubs,
+# which makes ld prefer Conda's libtinfo over system libreadline requirements.
+# Strip those search flags and any rpath entries that point at the conda lib dir.
+if (DEFINED ENV{CONDA_PREFIX})
+  set(_CONDA_LIB_FLAG "-L$ENV{CONDA_PREFIX}/lib")
+  set(_CONDA_STUBS_FLAG "-L$ENV{CONDA_PREFIX}/lib/stubs")
+  set(_TORCH_LINK_LIBRARIES_SANITIZED "")
+  foreach(_item IN LISTS TORCH_LINK_LIBRARIES)
+    if (_item STREQUAL "${_CONDA_LIB_FLAG}" OR _item STREQUAL "${_CONDA_STUBS_FLAG}")
+      continue()
+    endif()
+    if (_item MATCHES "^-Wl,-rpath,")
+      string(REPLACE "-Wl,-rpath," "" _rpath_list "${_item}")
+      string(REPLACE ":" ";" _rpath_elems "${_rpath_list}")
+      set(_filtered_rpath "")
+      foreach(_rp IN LISTS _rpath_elems)
+        if (_rp MATCHES "^$ENV{CONDA_PREFIX}/lib")
+          continue()
+        endif()
+        list(APPEND _filtered_rpath "${_rp}")
+      endforeach()
+      if (_filtered_rpath)
+        string(REPLACE ";" ":" _filtered_rpath_join "${_filtered_rpath}")
+        list(APPEND _TORCH_LINK_LIBRARIES_SANITIZED "-Wl,-rpath,${_filtered_rpath_join}")
+      endif()
+      continue()
+    endif()
+    list(APPEND _TORCH_LINK_LIBRARIES_SANITIZED "${_item}")
+  endforeach()
+  set(TORCH_LINK_LIBRARIES ${_TORCH_LINK_LIBRARIES_SANITIZED})
+endif()
+
 
 # Let COMMON_HEADER_DIRS take effect and make CUDA visible globally.
 include_directories(${COMMON_HEADER_DIRS})
