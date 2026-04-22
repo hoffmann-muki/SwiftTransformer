@@ -3,7 +3,10 @@ project(SwiftTransformer LANGUAGES CXX CUDA)
 
 if (DEFINED ENV{CONDA_PREFIX})
   # use conda environment
-  link_directories($ENV{CONDA_PREFIX}/lib)
+  option(ST_LINK_CONDA_LIBDIR "Add CONDA_PREFIX/lib to global linker search path" OFF)
+  if (ST_LINK_CONDA_LIBDIR)
+    link_directories($ENV{CONDA_PREFIX}/lib)
+  endif()
   include_directories($ENV{CONDA_PREFIX}/include)
   set(CMAKE_PREFIX_PATH $ENV{CONDA_PREFIX} ${CMAKE_PREFIX_PATH})
   set(CMAKE_CUDA_COMPILER $ENV{CONDA_PREFIX}/bin/nvcc)
