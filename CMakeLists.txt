@@ -148,6 +148,25 @@ list(APPEND COMMON_HEADER_DIRS
 
 set(COMMON_LIBS CUDA::cudart)
 
+# Some HPC linker setups do not resolve libreadline's transitive libtinfo
+# dependency during final executable link, which can surface as
+# NCURSES6_TINFO undefined references.
+if (UNIX AND NOT APPLE)
+  set(_SYSTEM_TINFO_LIBRARY "")
+  if (EXISTS "/lib64/libtinfo.so.6")
+    set(_SYSTEM_TINFO_LIBRARY "/lib64/libtinfo.so.6")
+  elseif (EXISTS "/usr/lib64/libtinfo.so.6")
+    set(_SYSTEM_TINFO_LIBRARY "/usr/lib64/libtinfo.so.6")
+  else()
+    find_library(_SYSTEM_TINFO_LIBRARY NAMES tinfo)
+  endif()
+
+  if (_SYSTEM_TINFO_LIBRARY)
+    message(STATUS "Linking system tinfo library: ${_SYSTEM_TINFO_LIBRARY}")
+    list(APPEND COMMON_LIBS "${_SYSTEM_TINFO_LIBRARY}")
+  endif()
+endif()
+
 # Add Python into COMMON_HEADER_DIRS & COMMON_LIB_DIRS
 set(PYTHON_PATH "python" CACHE STRING "Python path")
 execute_process(COMMAND ${PYTHON_PATH} "-c" "import sysconfig;
