@@ -3,7 +3,7 @@ add_library(unittest_kernel_ref
 	kvcache_mgmt_ref.cc
 	rotary_posi_embedding_ref.cc
 )
-target_link_libraries(unittest_kernel_ref PUBLIC kernel)
+target_link_libraries(unittest_kernel_ref PUBLIC kernel ${TORCH_LIBRARIES})
 
 add_executable(unittest_kernel
 	addbias.cc
@@ -15,4 +15,4 @@ add_executable(unittest_kernel
 	rotary_posi_embedding.cc
 	softmax.cc
 )
-target_link_libraries(unittest_kernel PUBLIC kernel unittest_kernel_ref gtest_main)
+target_link_libraries(unittest_kernel PUBLIC kernel unittest_kernel_ref gtest_main ${TORCH_LIBRARIES})

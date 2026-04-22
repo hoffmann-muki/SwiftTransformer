@@ -1,17 +1,6 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 project(SwiftTransformer LANGUAGES CXX CUDA)
 
-if (DEFINED ENV{CONDA_PREFIX})
-  # use conda environment
-  option(ST_LINK_CONDA_LIBDIR "Add CONDA_PREFIX/lib to global linker search path" OFF)
-  if (ST_LINK_CONDA_LIBDIR)
-    link_directories($ENV{CONDA_PREFIX}/lib)
-  endif()
-  include_directories($ENV{CONDA_PREFIX}/include)
-  set(CMAKE_CUDA_COMPILER $ENV{CONDA_PREFIX}/bin/nvcc)
-  set(CUDAToolkit_ROOT $ENV{CONDA_PREFIX})
-endif()
-
 find_package(CUDAToolkit 11.4 REQUIRED)
 
 # gcc >= 8 is required, we do not support other compilers
@@ -61,7 +50,6 @@ set(COMMON_HEADER_DIRS
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/src/csrc
 )
-set(COMMON_LIB_DIRS "")
 
 # Set up MPI and NCCL for multi-GPU communication
 message("Building with MPI and NCCL")
@@ -71,9 +59,8 @@ find_package(NCCL REQUIRED)
 find_package(MPI REQUIRED)
 set(CMAKE_MODULE_PATH "") # prevent the bugs for pytorch building
 
-# Add MPI and NCCL into COMMON_HEADER_DIRS & COMMON_LIB_DIRS
+# Add MPI and NCCL into COMMON_HEADER_DIRS
 list(APPEND COMMON_HEADER_DIRS ${MPI_INCLUDE_PATH} ${NCCL_INCLUDE_DIR})
-list(APPEND COMMON_LIB_DIRS ${MPI_LIBRARIES} ${NCCL_LIBRARIES})
 
 set(COMMON_LIBS CUDA::cudart)
 
@@ -101,12 +88,10 @@ list(APPEND CMAKE_PREFIX_PATH ${TORCH_DIR})
 set(CAFFE2_USE_CUDNN 1)
 find_package(Torch REQUIRED)
 list(APPEND COMMON_HEADER_DIRS "${TORCH_INCLUDE_DIRS}")
-list(APPEND COMMON_LIBS "${TORCH_LIBRARIES}")
 
 
-# Let COMMON_HEADER_DIRS & COMMON_LIB_DIRS take effect
+# Let COMMON_HEADER_DIRS take effect and make CUDA visible globally.
 include_directories(${COMMON_HEADER_DIRS})
-link_directories(${COMMON_LIB_DIRS})
 link_libraries(${COMMON_LIBS})
 
 

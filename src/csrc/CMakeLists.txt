@@ -13,6 +13,7 @@ target_link_libraries(st_pybinding
     py_nccl_utils
     py_swapping
     py_block_migration
+    ${TORCH_LIBRARIES}
 )
 
 # Set the output directory for the shared library
