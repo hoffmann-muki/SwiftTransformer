@@ -47,6 +47,12 @@ if (DEFINED ENV{CONDA_PREFIX})
 
   list(APPEND CMAKE_SYSTEM_IGNORE_PATH "$ENV{CONDA_PREFIX}/lib" "$ENV{CONDA_PREFIX}/lib/stubs")
   list(APPEND CMAKE_IGNORE_PATH "$ENV{CONDA_PREFIX}/lib" "$ENV{CONDA_PREFIX}/lib/stubs")
+
+  # Keep CUDA toolkit discovery working when nvcc comes from the Conda env,
+  # but do not add Conda's lib directories to the linker search path.
+  if (NOT DEFINED CUDAToolkit_ROOT)
+    set(CUDAToolkit_ROOT $ENV{CONDA_PREFIX})
+  endif()
 endif()
 
 find_package(CUDAToolkit 11.4 REQUIRED)
