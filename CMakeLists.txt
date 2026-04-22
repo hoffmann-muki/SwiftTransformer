@@ -44,9 +44,6 @@ if (DEFINED ENV{CONDA_PREFIX})
   st_strip_conda_flags(CMAKE_MODULE_LINKER_FLAGS)
   st_strip_conda_flags(CMAKE_CXX_FLAGS)
   st_strip_conda_flags(CMAKE_CUDA_FLAGS)
-
-  list(APPEND CMAKE_SYSTEM_IGNORE_PATH "$ENV{CONDA_PREFIX}/lib" "$ENV{CONDA_PREFIX}/lib/stubs")
-  list(APPEND CMAKE_IGNORE_PATH "$ENV{CONDA_PREFIX}/lib" "$ENV{CONDA_PREFIX}/lib/stubs")
 endif()
 
 # Prefer toolkit roots from system modules (HPC) over Conda discovery.
@@ -145,6 +142,19 @@ if (NOT _PYTHON_SUCCESS MATCHES 0)
 endif()
 list(APPEND CMAKE_PREFIX_PATH ${TORCH_DIR})
 set(CAFFE2_USE_CUDNN 1)
+
+# Torch's Caffe2 config still uses legacy FindCUDA variables.
+if (NOT DEFINED CUDA_TOOLKIT_ROOT_DIR AND DEFINED CUDAToolkit_ROOT)
+  set(CUDA_TOOLKIT_ROOT_DIR ${CUDAToolkit_ROOT})
+endif()
+if (NOT DEFINED CUDA_CUDART_LIBRARY AND DEFINED CUDAToolkit_ROOT)
+  if (EXISTS "${CUDAToolkit_ROOT}/lib64/libcudart.so")
+    set(CUDA_CUDART_LIBRARY "${CUDAToolkit_ROOT}/lib64/libcudart.so")
+  elseif (EXISTS "${CUDAToolkit_ROOT}/lib/libcudart.so")
+    set(CUDA_CUDART_LIBRARY "${CUDAToolkit_ROOT}/lib/libcudart.so")
+  endif()
+endif()
+
 find_package(Torch REQUIRED)
 list(APPEND COMMON_HEADER_DIRS "${TORCH_INCLUDE_DIRS}")
 
@@ -181,6 +191,14 @@ if (DEFINED ENV{CONDA_PREFIX})
     list(APPEND _TORCH_LINK_LIBRARIES_SANITIZED "${_item}")
   endforeach()
   set(TORCH_LINK_LIBRARIES ${_TORCH_LINK_LIBRARIES_SANITIZED})
+
+  # Torch can inject linker flags globally while loading Caffe2/TorchConfig.
+  # Strip these after find_package(Torch) to keep system readline/tinfo resolution intact.
+  st_strip_conda_flags(CMAKE_EXE_LINKER_FLAGS)
+  st_strip_conda_flags(CMAKE_SHARED_LINKER_FLAGS)
+  st_strip_conda_flags(CMAKE_MODULE_LINKER_FLAGS)
+  st_strip_conda_flags(CMAKE_CXX_FLAGS)
+  st_strip_conda_flags(CMAKE_CUDA_FLAGS)
 endif()
 
 
