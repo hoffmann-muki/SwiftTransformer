@@ -1,4 +1,17 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+
+# Prefer module/system nvcc over Conda nvcc when available. This avoids
+# Conda CUDA linker directory injection that conflicts with system readline/tinfo.
+if (NOT DEFINED CMAKE_CUDA_COMPILER)
+  if (DEFINED ENV{CRAY_CUDATOOLKIT_DIR} AND EXISTS "$ENV{CRAY_CUDATOOLKIT_DIR}/bin/nvcc")
+    set(CMAKE_CUDA_COMPILER "$ENV{CRAY_CUDATOOLKIT_DIR}/bin/nvcc" CACHE FILEPATH "CUDA compiler" FORCE)
+  elseif (DEFINED ENV{CUDATOOLKIT_HOME} AND EXISTS "$ENV{CUDATOOLKIT_HOME}/bin/nvcc")
+    set(CMAKE_CUDA_COMPILER "$ENV{CUDATOOLKIT_HOME}/bin/nvcc" CACHE FILEPATH "CUDA compiler" FORCE)
+  elseif (DEFINED ENV{CUDA_HOME} AND EXISTS "$ENV{CUDA_HOME}/bin/nvcc")
+    set(CMAKE_CUDA_COMPILER "$ENV{CUDA_HOME}/bin/nvcc" CACHE FILEPATH "CUDA compiler" FORCE)
+  endif()
+endif()
+
 project(SwiftTransformer LANGUAGES CXX CUDA)
 
 # Conda often injects link flags that make ld prefer its libtinfo over system
@@ -46,17 +59,24 @@ if (DEFINED ENV{CONDA_PREFIX})
   st_strip_conda_flags(CMAKE_CUDA_FLAGS)
 endif()
 
-# Prefer a Torch-compatible toolkit root. On this project, Torch comes from
-# Conda and expects CUDA runtime pieces (including nvToolsExt) to be discoverable.
+# Prefer module/system toolkit roots first to keep runtime and linker resolution
+# aligned with system libraries. Fall back to Conda only if needed.
 if (NOT DEFINED CUDAToolkit_ROOT)
-  if (DEFINED ENV{CONDA_PREFIX} AND EXISTS "$ENV{CONDA_PREFIX}/lib/libcudart.so")
-    set(CUDAToolkit_ROOT $ENV{CONDA_PREFIX})
-  elseif (DEFINED ENV{CRAY_CUDATOOLKIT_DIR})
+  if (DEFINED ENV{CRAY_CUDATOOLKIT_DIR})
     set(CUDAToolkit_ROOT $ENV{CRAY_CUDATOOLKIT_DIR})
   elseif (DEFINED ENV{CUDATOOLKIT_HOME})
     set(CUDAToolkit_ROOT $ENV{CUDATOOLKIT_HOME})
   elseif (DEFINED ENV{CUDA_HOME})
     set(CUDAToolkit_ROOT $ENV{CUDA_HOME})
+  endif()
+endif()
+
+if (DEFINED ENV{CONDA_PREFIX} AND DEFINED CUDAToolkit_ROOT)
+  if (CUDAToolkit_ROOT MATCHES "^$ENV{CONDA_PREFIX}(/|$)")
+    message(FATAL_ERROR
+      "CUDAToolkit_ROOT points to Conda (${CUDAToolkit_ROOT}). "
+      "Load a system/module CUDA toolkit (for example CRAY_CUDATOOLKIT_DIR or CUDA_HOME) "
+      "to avoid Conda library mixing during link.")
   endif()
 endif()
 
@@ -162,8 +182,6 @@ if (NOT DEFINED LIBNVTOOLSEXT)
     set(LIBNVTOOLSEXT "${CUDAToolkit_ROOT}/lib64/libnvToolsExt.so")
   elseif (DEFINED CUDAToolkit_ROOT AND EXISTS "${CUDAToolkit_ROOT}/lib/libnvToolsExt.so")
     set(LIBNVTOOLSEXT "${CUDAToolkit_ROOT}/lib/libnvToolsExt.so")
-  elseif (DEFINED ENV{CONDA_PREFIX} AND EXISTS "$ENV{CONDA_PREFIX}/lib/libnvToolsExt.so")
-    set(LIBNVTOOLSEXT "$ENV{CONDA_PREFIX}/lib/libnvToolsExt.so")
   endif()
 endif()
 if (DEFINED LIBNVTOOLSEXT)
